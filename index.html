@@ -9,6 +9,7 @@
     <h2>Prueba de Login con Firebase</h2>
     <button id="login-google">Iniciar sesión con Google</button>
     <button id="login-email">Iniciar sesión con Email</button>
+    <button id="register-email">Registrarse con Email</button>
     <button id="logout" style="display: none;">Cerrar sesión</button>
     <p id="auth-status"></p>
     
@@ -31,9 +32,10 @@
 
         document.getElementById("login-google").addEventListener("click", () => {
             signInWithPopup(auth, provider).then((result) => {
-                window.location.href = "bienvenido.html?name=" + encodeURIComponent(result.user.displayName || result.user.email);
-            }).catch((error) => {
-                console.error("Error de autenticación:", error);
+                sessionStorage.setItem("user", JSON.stringify({
+                    name: result.user.displayName || result.user.email
+                }));
+                window.location.href = "/home";
             });
         });
 
@@ -41,11 +43,13 @@
             const email = prompt("Ingresa tu email:");
             const password = prompt("Ingresa tu contraseña:");
             signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
-                window.location.href = "bienvenido.html?name=" + encodeURIComponent(userCredential.user.displayName || userCredential.user.email);
-            }).catch((error) => {
-                console.error("Error de autenticación:", error);
+                sessionStorage.setItem("user", JSON.stringify({
+                    name: userCredential.user.displayName || userCredential.user.email
+                }));
+                window.location.href = "/home";
             });
         });
+        
 
         document.getElementById("logout").addEventListener("click", () => {
             signOut(auth).then(() => {
@@ -53,6 +57,20 @@
             }).catch((error) => {
                 console.error("Error al cerrar sesión:", error);
             });
+        });
+
+        import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        document.getElementById("register-email").addEventListener("click", () => {
+            const email = prompt("Ingresa tu email:");
+            const password = prompt("Ingresa tu contraseña:");
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    alert("Cuenta creada con éxito, ahora inicia sesión.");
+                })
+                .catch((error) => {
+                    console.error("Error de registro:", error);
+                });
         });
     </script>
 </body>

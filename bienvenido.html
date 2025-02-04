@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenidx</title>
+</head>
+<body>
+    <h2 id="welcome-message"></h2>
+    <button id="logout">Cerrar sesión</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCpiq0Co25BXG9_KCR7LYqB82VVT-7knU8",
+            authDomain: "bayesplurinacionalprueba.firebaseapp.com",
+            projectId: "bayesplurinacionalprueba",
+            storageBucket: "bayesplurinacionalprueba.firebasestorage.app",
+            messagingSenderId: "865242553497",
+            appId: "1:865242553497:web:65f0161c1eb9528d9aac08"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Obtener el nombre desde la URL
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get("name");
+
+        document.getElementById("welcome-message").innerText = `Bienvenidx, ${name}`;
+
+        // Botón para cerrar sesión
+        document.getElementById("logout").addEventListener("click", () => {
+            signOut(auth).then(() => {
+                window.location.href = "index.html";
+            }).catch((error) => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        });
+    </script>
+</body>
+</html>
