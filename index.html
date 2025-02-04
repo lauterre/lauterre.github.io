@@ -28,7 +28,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -45,37 +45,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // Autenticación con Google
-        document.getElementById("login-google").addEventListener("click", () => {
-            signInWithPopup(auth, provider).then((result) => {
-                sessionStorage.setItem("user", JSON.stringify({ name: result.user.displayName || result.user.email }));
-                window.location.href = "/home";
-            }).catch((error) => {
-                console.error("Error de autenticación:", error);
-            });
-        });
-
-        // Autenticación con email y contraseña
-        document.getElementById("login-email").addEventListener("click", () => {
-            const email = prompt("Ingresa tu email:");
-            const password = prompt("Ingresa tu contraseña:");
-            signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
-                sessionStorage.setItem("user", JSON.stringify({ name: userCredential.user.displayName || userCredential.user.email }));
-                window.location.href = "/home";
-            }).catch((error) => {
-                console.error("Error de autenticación:", error);
-            });
-        });
-
-        // Mostrar y ocultar el formulario de registro
-        document.getElementById("register-btn").addEventListener("click", () => {
-            document.getElementById("register-form").style.display = "block";
-        });
-        document.getElementById("close-register").addEventListener("click", () => {
-            document.getElementById("register-form").style.display = "none";
-        });
-
-        // Registro con email y contraseña
+        // Registro con email y contraseña + verificación de correo
         document.getElementById("submit-register").addEventListener("click", async () => {
             const firstName = document.getElementById("first-name").value;
             const lastName = document.getElementById("last-name").value;
@@ -91,6 +61,9 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
+                // Enviar email de verificación
+                await sendEmailVerification(user);
+
                 // Guardar nombre en Firebase Auth
                 await updateProfile(user, {
                     displayName: `${firstName} ${lastName}`
@@ -100,15 +73,38 @@
                 await setDoc(doc(db, "users", user.uid), {
                     firstName: firstName,
                     lastName: lastName,
-                    email: email
+                    email: email,
+                    emailVerified: false
                 });
 
-                // Guardar usuario en sessionStorage y redirigir
-                sessionStorage.setItem("user", JSON.stringify({ name: `${firstName} ${lastName}` }));
-                window.location.href = "/home";
+                alert("Se ha enviado un correo de verificación. Por favor, revisa tu bandeja de entrada y verifica tu email antes de iniciar sesión.");
+                document.getElementById("register-form").style.display = "none";
+
             } catch (error) {
                 console.error("Error al registrar:", error);
                 alert("Error al registrar: " + error.message);
+            }
+        });
+
+        // Autenticación con email y contraseña (solo si el email está verificado)
+        document.getElementById("login-email").addEventListener("click", async () => {
+            const email = prompt("Ingresa tu email:");
+            const password = prompt("Ingresa tu contraseña:");
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                if (!user.emailVerified) {
+                    alert("Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.");
+                    return;
+                }
+
+                sessionStorage.setItem("user", JSON.stringify({ name: user.displayName || user.email }));
+                window.location.href = "/home";
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+                alert("Error de autenticación: " + error.message);
             }
         });
 
@@ -125,6 +121,10 @@
         // Verificar estado de autenticación
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                if (!user.emailVerified) {
+                    document.getElementById("auth-status").innerText = "Correo no verificado. Verifica tu email antes de iniciar sesión.";
+                    return;
+                }
                 document.getElementById("auth-status").innerText = `Autenticado como: ${user.displayName || user.email}`;
                 document.getElementById("logout").style.display = "block";
             } else {
