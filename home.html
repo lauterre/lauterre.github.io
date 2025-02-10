@@ -3,15 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenidx</title>
+    <title>Enviar solicitud - Orador</title>
 </head>
 <body>
-    <h2 id="welcome-message"></h2>
+    <h2>Solicitud para ser Orador</h2>
+    <form id="speaker-form">
+        <input type="text" id="tema" placeholder="Tema de la charla" required><br>
+        <textarea id="descripcion" placeholder="Descripción" required></textarea><br>
+        <button type="submit">Enviar Solicitud</button>
+    </form>
+
     <button id="logout">Cerrar sesión</button>
+    
+    <p id="status"></p>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCpiq0Co25BXG9_KCR7LYqB82VVT-7knU8",
@@ -24,26 +33,65 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Comprobar autenticación
+        // Verificar autenticación
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const userData = JSON.parse(sessionStorage.getItem("user"));
-                document.getElementById("welcome-message").innerText = `Bienvenidx, ${userData?.name || "Usuario"}`;
-            } else {
-                window.location.href = "index.html"; // Redirigir si no hay sesión activa
+            if (!user) {
+                window.location.href = "index.html"; // Si no está autenticado, redirige al login
+            }
+        });
+
+        // Enviar formulario
+        document.getElementById("speaker-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const tema = document.getElementById("tema").value;
+            const descripcion = document.getElementById("descripcion").value;
+            const user = auth.currentUser;
+
+            if (!user) {
+                alert("Debes iniciar sesión para enviar una solicitud.");
+                return;
+            }
+
+            const userId = user.uid;
+
+            try {
+                // Verificar si el usuario ya tiene una solicitud en Firestore
+                const solicitudesRef = collection(db, "solicitudes");
+                const q = query(solicitudesRef, where("userId", "==", userId));  // Corregido: userId ahora está definido
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    alert("Ya has enviado una solicitud. No puedes enviar otra.");
+                    return;
+                }
+                
+                await addDoc(solicitudesRef, {
+                    userId: userId, // Guardamos el ID del usuario
+                    nombre: user.displayName || "Sin nombre",
+                    email: user.email,
+                    tema: tema,
+                    descripcion: descripcion,
+                    timestamp: new Date()
+                });
+
+                alert("Solicitud enviada con éxito.");
+                document.getElementById("speaker-form").reset();
+            } catch (error) {
+                console.error("Error al enviar la solicitud:", error);
+                alert("Error al enviar la solicitud.");
             }
         });
 
         // Cerrar sesión
         document.getElementById("logout").addEventListener("click", () => {
             signOut(auth).then(() => {
-                sessionStorage.removeItem("user");
                 window.location.href = "index.html";
-            }).catch((error) => {
-                console.error("Error al cerrar sesión:", error);
             });
         });
+
     </script>
 </body>
 </html>

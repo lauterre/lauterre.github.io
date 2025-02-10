@@ -15,7 +15,7 @@
     
     <p id="auth-status"></p>
 
-    <!-- Formulario de registro -->
+    <!-- formulario de registro -->
     <div id="register-form" style="display: none;">
         <h2>Registro</h2>
         <input type="text" id="first-name" placeholder="Nombre">
@@ -45,13 +45,13 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // 🔹 Autenticación con Google
+        // 🔹 auth con Google
         document.getElementById("login-google").addEventListener("click", async () => {
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
 
-                // Guardar en Firestore si es nuevo usuario
+                // guardar en Firestore si es nuevo usuario
                 const userRef = doc(db, "users", user.uid);
                 await setDoc(userRef, {
                     name: user.displayName || "",
@@ -60,14 +60,14 @@
                 }, { merge: true });
 
                 sessionStorage.setItem("user", JSON.stringify({ name: user.displayName || user.email }));
-                window.location.href = "/home";
+                window.location.href = "home.html"; 
             } catch (error) {
                 console.error("Error con Google Sign-In:", error);
                 alert("Error al iniciar sesión con Google: " + error.message);
             }
         });
 
-        // 🔹 Mostrar formulario de registro
+        //  Mostrar formulario de registro
         document.getElementById("register-btn").addEventListener("click", () => {
             document.getElementById("register-form").style.display = "block";
         });
@@ -76,7 +76,7 @@
             document.getElementById("register-form").style.display = "none";
         });
 
-        // 🔹 Registro con email y contraseña
+        //  Registro con email y contraseña
         document.getElementById("submit-register").addEventListener("click", async () => {
             const firstName = document.getElementById("first-name").value;
             const lastName = document.getElementById("last-name").value;
